@@ -31,11 +31,16 @@ class WarehouseTests(unittest.TestCase):
                 build_snapshot(*args)
             self.assertEqual(db.read_parquet(str(target)).fetchone()[8], 25)
 
-    def test_dashboard_defaults_to_curry_and_can_open_durant(self):
+    def test_dashboard_defaults_to_curry_and_loads_all_featured_players(self):
         app = AppTest.from_file("dashboard.py", default_timeout=25).run()
         self.assertFalse(app.exception)
         self.assertEqual(app.sidebar.selectbox[0].value, "Stephen Curry")
         self.assertEqual(len(app.metric), 8)
-        app.sidebar.selectbox[0].set_value("Kevin Durant").run()
-        self.assertFalse(app.exception)
-        self.assertEqual(app.header[0].value, "Kevin Durant")
+        options = app.sidebar.selectbox[0].options
+        self.assertEqual(len(options), 20)
+        for name in options:
+            with self.subTest(player=name):
+                app.sidebar.selectbox[0].set_value(name).run()
+                self.assertFalse(app.exception)
+                self.assertEqual(app.header[0].value, name)
+                self.assertEqual(len(app.metric), 8)

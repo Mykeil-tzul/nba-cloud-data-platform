@@ -6,8 +6,26 @@ import streamlit as st
 
 SNAPSHOT = Path(__file__).resolve().parent / "data" / "league.parquet"
 FEATURED = {
-    "Stephen Curry": "201939", "Kevin Durant": "201142",
-    "Anthony Edwards": "1630162", "Luka Dončić": "1629029",
+    "Stephen Curry": "201939",
+    "Victor Wembanyama": "1641705",
+    "Shai Gilgeous-Alexander": "1628983",
+    "Nikola Jokić": "203999",
+    "Luka Dončić": "1629029",
+    "Anthony Edwards": "1630162",
+    "Giannis Antetokounmpo": "203507",
+    "Jalen Brunson": "1628973",
+    "Cade Cunningham": "1630595",
+    "Jayson Tatum": "1628369",
+    "Kawhi Leonard": "202695",
+    "Tyrese Haliburton": "1630169",
+    "Tyrese Maxey": "1630178",
+    "Donovan Mitchell": "1628378",
+    "Kevin Durant": "201142",
+    "Karl-Anthony Towns": "1626157",
+    "Jaylen Brown": "1627759",
+    "Scottie Barnes": "1630567",
+    "LeBron James": "2544",
+    "Jalen Williams": "1631114",
 }
 
 st.set_page_config(page_title="NBA Cloud Data Platform", page_icon="🏀", layout="wide")

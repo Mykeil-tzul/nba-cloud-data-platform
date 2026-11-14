@@ -4,7 +4,7 @@
 
 ![NBA Cloud Data Platform showing Stephen Curry and league coverage](docs/dashboard.png)
 
-I started this project with a pipeline for Anthony Edwards' game logs. I expanded it to the whole league so I could use the same dataset for a player dashboard and for CourtIQ. Steph Curry opens the dashboard. You can switch to Kevin Durant, Anthony Edwards, Luka Dončić, or look up another player by NBA ID.
+I started this project with a pipeline for Anthony Edwards' game logs. I expanded it to the whole league so I could use the same dataset for a player dashboard and for CourtIQ. Steph Curry opens the dashboard. The featured picker includes all 20 players from [CBS Sports’ 2026–27 preseason top 20](https://www.cbssports.com/nba/news/ranking-nba-top-100-players-2026-27-season/), with Curry first for the demo. You can also look up another player by NBA ID.
 
 CourtIQ estimates a player's next box score. This project handles the work that comes before a model can do that. It collects completed games, checks that the data makes sense, and publishes it in a form other applications can use.
 
