@@ -1,101 +1,64 @@
-# Anthony Edwards Real-Time Stats Pipeline
+# NBA Cloud Data Platform
 
---
+[**Open the player dashboard**](https://anthony-edwards-pipeline-by-mt.streamlit.app/)
 
-## Why I Built This
+I started this project with a pipeline for Anthony Edwards' game logs. I expanded it to the whole league so I could use the same dataset for a player dashboard and for CourtIQ. Steph Curry opens the dashboard. You can switch to Kevin Durant, Anthony Edwards, Luka Dončić, or look up another player by NBA ID.
 
-This project simulates a real-time data pipeline designed to track **Anthony Edwards’ performance during the NBA Playoffs**, specifically as he leads the Minnesota Timberwolves through the Western Conference Finals for 2 years straight. His Growth is legendary, knocking out the GOAT's like Kevin Durant, LeBron James, and recently Steph Curry (even though he was injured).
+CourtIQ estimates a player's next box score. This project handles the work that comes before a model can do that. It collects completed games, checks that the data makes sense, and publishes it in a form other applications can use.
 
-As a former pro basketball player and data engineer, I'm passionate about building sports-related data systems that fuel my passion for sports
+## What the pipeline does
 
-## Live App
+```mermaid
+flowchart LR
+    A[NBA season files] --> B[Validate and deduplicate with DuckDB]
+    B --> C[League Parquet snapshot]
+    C --> D[Streamlit player dashboard]
+    C --> E[CourtIQ CSV export]
+    C --> F[BigQuery loader]
+```
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://anthony-edwards-pipeline-by-mt.streamlit.app/)
+I pull regular-season box scores from the [nba_data archive](https://github.com/llimllib/nba_data), which publishes NBA Stats data in season files. The included snapshot covers **5,100 games, 934 players and 109,304 player appearances** from October 18, 2022 through November 13, 2026. The 2026–27 season is still in progress.
 
-This app is built with Python, DuckDB, and Streamlit to track Anthony Edwards' game performance — including playoffs!
+One row represents one player appearing in one game. A player who misses a game contributes no appearance. The other players' records still count. When the archive has no home/away flag, the export keeps the teams and leaves the venue unspecified.
 
----
+The pipeline checks that every expected season is present and rejects impossible box-score values, future dates, conflicting records, and refreshes that drop previously published appearances. It writes a temporary file and replaces the published snapshot only after the checks pass. A repeated load rebuilds the same dataset instead of appending another copy of every game.
 
-## Project Overview
+## Run it locally
 
-This end-to-end pipeline:
-- Ingests live NBA data using the `nba_api`
-- Cleans and transforms the data with Python (`pandas`)
-- Stores analytics-ready data in a local warehouse (`DuckDB`)
-- Visualizes player performance with an interactive dashboard (`Streamlit`)
-- Can be extended for real-time betting, fantasy, or team analytics use cases
-
----
-
-## Challenges Faced
-
-- **Real-Time Data Fetching:** Scheduling and testing live data pulls using Python required learning how to handle API timeouts and failures.
-
-- **Building with DuckDB:** As a new tool for me, DuckDB’s in-memory SQL processing was powerful but had a learning curve around file storage and schema behavior.
-
-- **Automating the Pipeline:** Implementing clean orchestration logic using Python functions and script separation taught me how to write scalable code.
-
-
-## Tech Stack
-
-| Layer             | Tools Used                      |
-|------------------|----------------------------------|
-| Ingestion        | `nba_api`                        |
-| Transformation   | `pandas`, `python`               |
-| Data Storage     | `DuckDB` (lightweight SQL DB)    |
-| Visualization    | `Streamlit`                      |
-| Automation Ready | `Manual Trigger Playoffs Only`   |
-| Version Control  | `Git + GitHub`                   |
-
----
-
-## Dashboard Preview
-
-Launch the dashboard locally:
-```bash
-streamlit run dashboard.py
-
-## Project Structure
-
-anthony_edwards_pipeline/
-├── data/ # Raw + clean data files and DuckDB warehouse
-├── fetch.py # Pulls Anthony Edwards game logs using nba_api
-├── transform.py # Cleans and formats the raw stats
-├── load.py # Loads data into DuckDB
-├── orchestrator.py # Runs full ETL pipeline
-├── dashboard.py # Streamlit dashboard to view stats
-├── query_check.py # Debugging file to inspect DuckDB tables
-├── requirements.txt # Python dependencies
-├── .gitignore # Files to exclude from Git
-└── README.md # Project overview
-
-How to Run It Locally
-
-## How to Run It Locally
+Use Python 3.11.
 
 ```bash
-# 1. Clone this repository
-git clone https://github.com/Mykeil-tzul/anthony-edwards-pipeline.git
-cd anthony-edwards-pipeline
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m streamlit run dashboard.py
+```
 
-# 2. Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Mac/Linux
-# or
-venv\Scripts\activate      # On Windows
+The dashboard reads the included snapshot. The season selector changes the averages, scoring chart, table, and downloadable CSV. The date at the top shows how current the snapshot is.
 
-# 3. Install required packages
-pip install -r requirements.txt
+## Refresh and export
 
-# 4. Run the full pipeline
-python orchestrator.py
+```bash
+python -m warehouse.pipeline
+python -m warehouse.export --output /tmp/courtiq.csv
+python -m unittest discover -s tests -v
+```
 
-# 5. Launch the dashboard
-streamlit run dashboard.py
+The refresh can also use local files named `2023.parquet` through `2027.parquet` with `--archive-dir`. I ran the same five files through the pipeline twice and got the same SHA-256 hash and row count. I also verified that CourtIQ's snapshot reader accepts the resulting 1,281-row export. CourtIQ's deployed training and data remain managed in its own repository.
 
+The **Refresh NBA warehouse** GitHub Actions workflow runs daily and can be started manually. It validates the new snapshot before committing it. A rejected refresh leaves the previous snapshot available to the dashboard.
 
+## BigQuery deployment
 
----
+The Streamlit dashboard currently queries the published Parquet file with DuckDB. The BigQuery loader is included for a separately provisioned Google Cloud project. It loads the validated player table, partitions it by game date, clusters by player and team, and creates a games view.
 
-- LinkedIn: *(https://www.linkedin.com/in/mykeil-tzul-8a7682206/)*
+After creating a dataset and configuring Google Cloud application credentials with permissions to load data and create views, run:
 
+```bash
+python -m pip install -r requirements-cloud.txt
+python -m warehouse.bigquery_load --project YOUR_PROJECT_ID --dataset nba
+```
+
+The live Google Cloud load requires an authorized project. The dashboard and refresh run independently of that connection.
+
+The original Anthony Edwards version is preserved in this repository's commit history.

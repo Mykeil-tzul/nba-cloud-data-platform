@@ -1,46 +1,80 @@
-import streamlit as st
+"""League warehouse dashboard and player game-log explorer."""
+from pathlib import Path
+
 import duckdb
-import pandas as pd
+import streamlit as st
 
-# Connect to DuckDB and fetch data
-con = duckdb.connect('data/edwards_stats.duckdb')
-df = con.execute("SELECT * FROM edwards_game_logs ORDER BY game_date DESC").fetchdf()
-con.close()
+SNAPSHOT = Path(__file__).resolve().parent / "data" / "league.parquet"
+FEATURED = {
+    "Stephen Curry": "201939", "Kevin Durant": "201142",
+    "Anthony Edwards": "1630162", "Luka Dončić": "1629029",
+}
 
-# Format title and intro
-st.title("🏀 Anthony Edwards Game Performance Tracker")
-st.markdown("""
-This dashboard highlights Anthony Edwards' NBA season with a focus on **Playoff performance**.
-Built using Python, DuckDB, and Streamlit.
-""")
+st.set_page_config(page_title="NBA Cloud Data Platform", page_icon="🏀", layout="wide")
 
-# 📋 Full Season Log
-st.subheader("📋 All Games (Full Season)")
-st.dataframe(df)
 
-# 🏆 Playoff Tracker Section
-st.subheader("🏆 Playoff Game Tracker")
+@st.cache_data(max_entries=2)
+def overview(version):
+    with duckdb.connect(config={"threads": 2}) as db:
+        return db.execute("""
+            SELECT count(*) appearances, count(DISTINCT game_id) games,
+                   count(DISTINCT player_id) players, max(game_date) through
+            FROM read_parquet(?)
+        """, [str(SNAPSHOT)]).fetchone()
 
-# Ensure game_date is datetime
-df['game_date'] = pd.to_datetime(df['game_date'])
 
-# Filter playoff games based on month (May = 5, June = 6)
-df_playoffs = df[df['game_date'].dt.month.isin([5, 6])]
+@st.cache_data(max_entries=32)
+def player_games(version, player_id):
+    with duckdb.connect(config={"threads": 2}) as db:
+        return db.execute("""
+            SELECT game_date AS Date, printf('%d-%02d', season - 1, season % 100) AS Season,
+                   pts AS PTS, reb AS REB, ast AS AST, fg3m AS "3PM",
+                   round(minutes, 1) AS Minutes, game_id
+            FROM read_parquet(?) WHERE player_id = ? ORDER BY game_date DESC
+        """, [str(SNAPSHOT), player_id]).df()
 
-if not df_playoffs.empty:
-    st.markdown("### 🔢 Playoff Averages")
-    st.dataframe(df_playoffs[['pts', 'reb', 'ast']].mean().to_frame(name='Average').style.format("{:.1f}"))
 
-    st.markdown("### 🔥 Top Playoff Games")
-    st.dataframe(df_playoffs.sort_values(by='pts', ascending=False).head(5))
-else:
-    st.info("No playoff games found in the dataset yet.")
+st.title("NBA Cloud Data Platform")
+st.caption("NBA regular-season warehouse · Player game logs")
+if not SNAPSHOT.is_file():
+    st.error("Run the data refresh to build the league snapshot.")
+    st.stop()
 
-# 📊 Full Game Log with Scoring Filter
-st.subheader("📈 Filter by Points Scored")
-min_points = st.slider("Show games with at least this many points:", 10, 50, 25)
-filtered_df = df[df['pts'] >= min_points]
-st.dataframe(filtered_df)
+version = SNAPSHOT.stat().st_mtime_ns
+appearances, games, players, through = overview(version)
+for column, (label, value) in zip(st.columns(4), [
+    ("Player appearances", f"{appearances:,}"), ("Games", f"{games:,}"),
+    ("Players", f"{players:,}"), ("Data through", str(through)),
+]):
+    column.metric(label, value)
 
-# Footer
-st.caption("Built by Mykeil Tzul • Data Pipeline + Dashboard Project")
+with st.sidebar:
+    name = st.selectbox("Featured player", list(FEATURED))
+    custom_id = st.text_input("Other NBA player ID", placeholder="Optional").strip()
+
+player_id = custom_id or FEATURED[name]
+if not player_id.isascii() or not player_id.isdigit():
+    st.warning("Enter a numeric NBA player ID.")
+    st.stop()
+
+rows = player_games(version, player_id)
+if rows.empty:
+    st.info("This player has no recorded appearances in the snapshot.")
+    st.stop()
+
+st.header(name if not custom_id else f"Player {player_id}")
+season = st.selectbox("Season", rows.Season.unique())
+selected = rows.loc[rows.Season.eq(season)]
+for column, (label, value) in zip(st.columns(4), [
+    ("Appearances", len(selected)), ("Points per game", f"{selected.PTS.mean():.1f}"),
+    ("Assists per game", f"{selected.AST.mean():.1f}"), ("Threes per game", f"{selected['3PM'].mean():.1f}"),
+]):
+    column.metric(label, value)
+
+st.subheader("Scoring by appearance")
+scoring = selected.sort_values("Date").reset_index(drop=True)
+scoring.index = scoring.index + 1
+scoring.index.name = "Appearance"
+st.line_chart(scoring[["PTS"]], color="#ff9259")
+st.dataframe(selected.drop(columns="game_id"), hide_index=True)
+st.download_button("Download season CSV", selected.to_csv(index=False), "player-season.csv", "text/csv")

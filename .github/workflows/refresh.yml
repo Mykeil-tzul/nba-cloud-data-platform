@@ -1,0 +1,29 @@
+name: Refresh NBA warehouse
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '37 14 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: nba-snapshot-refresh
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - run: python -m warehouse.pipeline
+      - run: python -m warehouse.export --output /tmp/courtiq.csv
+      - name: Publish changed snapshot
+        run: |
+          if git diff --quiet -- data/league.parquet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/league.parquet
+          git commit -m "Refresh NBA game logs"
+          git push
