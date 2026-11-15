@@ -1,66 +1,38 @@
-# NBA Cloud Data Platform
+# WonderWorlds
 
-[**Open the player dashboard**](https://anthony-edwards-pipeline-by-mt.streamlit.app/)
+**[Play WonderWorlds](https://mykeil-tzul.github.io/wonderworlds/)**
 
-![NBA Cloud Data Platform showing Stephen Curry and league coverage](docs/dashboard.png)
+WonderWorlds is a small learning arcade for young children to explore with a grown-up nearby. Each adventure takes five rounds. A child can take their time, hear the prompt again, and try another answer with a hint. There are no timers, streaks, required sign-ins, or chat.
 
-I started this project with a pipeline for Anthony Edwards' game logs. I expanded it to the whole league so I could use the same dataset for a player dashboard and for CourtIQ. Steph Curry opens the dashboard. The featured picker includes all 20 players from [CBS Sports’ 2026–27 preseason top 20](https://www.cbssports.com/nba/news/ranking-nba-top-100-players-2026-27-season/), with Curry first for the demo. You can also look up another player by NBA ID.
+## Five adventures
 
-CourtIQ estimates a player's next box score. This project handles the work that comes before a model can do that. It collects completed games, checks that the data makes sense, and publishes it in a form other applications can use.
+| Game | What the child practices |
+| --- | --- |
+| Treasure Count | Tap and count themed objects, then choose a total from 1–10 as the level grows |
+| Number Echo | Match a spoken or written number to a numeral |
+| Color Cove | Match a color sample |
+| Shape Harbor | Match an outline to a filled shape |
+| Pattern Path | Continue a repeating sequence |
 
-## What the pipeline does
+The map starts in Ocean World. The grown-up area can switch to Space, Animals, or a Noah’s ark-inspired theme. Themes change the characters and objects while the skills stay the same.
 
-```mermaid
-flowchart LR
-    A[NBA season files] --> B[Validate and deduplicate with DuckDB]
-    B --> C[League Parquet snapshot]
-    C --> D[Streamlit player dashboard]
-    C --> E[CourtIQ CSV export]
-    C --> F[BigQuery loader]
+## How practice adapts
+
+Five choices of game share three difficulty tiers, each tracked separately for each learner. Three recent first-try answers can raise a game’s difficulty. Two rounds that needed retries can lower it. The map suggests a game using first-try practice history and offers hints after incorrect choices. It awards one badge per completed game. The app uses curated rules. It does not use a chatbot or generate lessons from children’s input.
+
+A completed adventure and first-try answers are simple practice measures. They have not been validated as educational assessments.
+
+## Privacy and the grown-up area
+
+The app asks for a preset nickname only. Game progress and settings stay in browser storage. There is no account, analytics, advertising, chat, or microphone access. Spoken prompts are pre-recorded and hosted with the app. The browser still makes normal requests to GitHub Pages to load the site. WonderWorlds adds no tracking service.
+
+A short arithmetic prompt separates the grown-up controls from the play screen. It is an interface cue, not authentication, identity verification, or verifiable parental consent. A grown-up can switch profiles, reset progress, remove profiles, or clear all WonderWorlds data. Anyone who can access the same browser profile can view the saved state. This portfolio MVP has not undergone a COPPA compliance review. [FTC COPPA guidance](https://www.ftc.gov/business-guidance/resources/complying-coppa-frequently-asked-questions)
+
+## Run locally and test
+
+```sh
+python3 -m http.server 8000 --directory site
+node --test tests/*.test.mjs
 ```
 
-I pull regular-season box scores from the [nba_data archive](https://github.com/llimllib/nba_data), which publishes NBA Stats data in season files. The included snapshot covers **5,100 games, 934 players and 109,304 player appearances** from October 18, 2022 through November 13, 2026. The 2026–27 season is still in progress.
-
-One row represents one player appearing in one game. A player who misses a game contributes no appearance. The other players' records still count. When the archive has no home/away flag, the export keeps the teams and leaves the venue unspecified.
-
-The pipeline checks that every expected season is present and rejects impossible box-score values, future dates, conflicting records, and refreshes that drop previously published appearances. It writes a temporary file and replaces the published snapshot only after the checks pass. A repeated load rebuilds the same dataset instead of appending another copy of every game.
-
-## Run it locally
-
-Use Python 3.11.
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python -m streamlit run dashboard.py
-```
-
-The dashboard reads the included snapshot. The season selector changes the averages, scoring chart, table, and downloadable CSV. The date at the top shows how current the snapshot is.
-
-## Refresh and export
-
-```bash
-python -m warehouse.pipeline
-python -m warehouse.export --output /tmp/courtiq.csv
-python -m unittest discover -s tests -v
-```
-
-The refresh can also use local files named `2023.parquet` through `2027.parquet` with `--archive-dir`. I ran the same five files through the pipeline twice and got the same SHA-256 hash and row count. I also verified that CourtIQ's snapshot reader accepts the resulting 1,281-row export. CourtIQ's deployed training and data remain managed in its own repository.
-
-The **Refresh NBA warehouse** GitHub Actions workflow runs daily and can be started manually. It validates the new snapshot before committing it. A rejected refresh leaves the previous snapshot available to the dashboard.
-
-## BigQuery deployment
-
-The Streamlit dashboard currently queries the published Parquet file with DuckDB. The BigQuery loader is included for a separately provisioned Google Cloud project. It loads the validated player table, partitions it by game date, clusters by player and team, and creates a games view.
-
-After creating a dataset and configuring Google Cloud application credentials with permissions to load data and create views, run:
-
-```bash
-python -m pip install -r requirements-cloud.txt
-python -m warehouse.bigquery_load --project YOUR_PROJECT_ID --dataset nba
-```
-
-The live Google Cloud load requires an authorized project. The dashboard and refresh run independently of that connection.
-
-The original Anthony Edwards version is preserved in this repository's commit history.
+Open `http://localhost:8000`. GitHub Actions checks question validity, number bounds, answer uniqueness, adaptation, suggestions, and bundled audio before publishing to GitHub Pages. The optional `scripts/make_audio.py` regenerates English prompts on macOS.

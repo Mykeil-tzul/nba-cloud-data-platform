@@ -1,7 +1,0 @@
-duckdb==1.4.4
-streamlit==1.57.0
-pandas==2.3.3
-numpy==2.2.6; python_version < "3.14"
-numpy==2.3.5; python_version >= "3.14"
-altair==6.0.0
-requests==2.32.3

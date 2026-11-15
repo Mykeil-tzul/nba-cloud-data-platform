@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Five playful learning adventures for counting, colors, shapes, and patterns.">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; media-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'">
+<title>WonderWorlds · Play and Learn</title><link rel="stylesheet" href="style.css"><script type="module" src="app.mjs"></script></head>
+<body><header><button class="wordmark" id="home" type="button"><span aria-hidden="true">🌈</span> WonderWorlds</button><div class="top-actions"><button type="button" id="sound" aria-pressed="false">🔇 Sound off</button><button type="button" id="grownups">Grown-ups</button></div></header>
+<main>
+<section id="world-map">
+<div class="hero" id="hero" data-world="ocean">
+<div class="hero-copy"><p class="eyebrow" id="welcome">OCEAN WORLD</p><h1>Let’s explore!</h1><p id="guide">Shelly the turtle is ready to play.</p><button type="button" id="recommended" class="primary">Play Treasure Count</button></div>
+<div class="scene" aria-hidden="true"><span class="float a">🐠</span><span class="float b">🫧</span><span class="float c">⭐</span><span class="float d">🪸</span><span class="mascot" id="mascot">🐢</span></div>
+</div>
+<div class="heading"><div><h2>Pick an adventure</h2><p>Five games. Play at your own pace.</p></div><p class="badge" id="badges">0 of 5 badges</p></div>
+<div id="game-map" class="game-map"></div>
+</section>
+<section id="play" hidden>
+<div class="heading"><div><p id="level-label" class="eyebrow"></p><h1 id="game-title">Adventure</h1></div><button type="button" id="back">Back to map</button></div>
+<div class="play-card"><div class="heading"><p id="step">Round 1 of 5</p><button type="button" id="hear" class="sound-button">🔊 Hear prompt</button></div>
+<h2 id="prompt"></h2><div id="activity" class="activity"></div><div id="answers" class="answers"></div>
+<p id="feedback" role="status" aria-live="polite"></p><button type="button" id="next" class="primary" hidden>Next round</button></div>
+</section>
+<section id="parents" class="adult" hidden><div class="heading"><div><h1>Grown-ups</h1><p>Choose a local profile, pick a theme, and see what’s getting easier.</p></div><button type="button" id="close-parent">Back to play</button></div>
+<form id="gate"><label>Grown-up check · What is eight plus five?<input id="gate-answer" type="number" required autocomplete="off"></label><button class="primary">Open grown-up area</button><p id="gate-status" role="status"></p></form>
+<div id="parent-content" hidden>
+<div class="parent-grid"><section class="card"><h2>Learner profiles</h2><p>Choose a preset nickname. Names, birthdays and email addresses are unnecessary.</p><form id="profile-form"><label>Nickname<select id="profile-name"></select></label><button class="primary">Add profile</button></form><div id="profiles"></div>
+<label>World theme<select id="world-select"><option value="ocean">Ocean</option><option value="space">Space</option><option value="animals">Animals</option><option value="bible">Bible stories · Noah’s ark</option></select></label>
+<label class="inline"><input type="checkbox" id="voice"> Enable spoken prompts</label></section>
+<section class="card"><h2>Learning progress</h2><p>First-try answers and current difficulty help show what to practice. These are practice records.</p><div id="progress"></div><button type="button" id="reset">Reset this profile’s progress</button></section></div>
+<section class="card"><h2>Privacy on this device</h2><p>WonderWorlds stores the selected nickname, learning progress and preferences in this browser. The app has no accounts, analytics, advertising, microphone access, or chat. Spoken prompts are bundled audio. Anyone sharing this browser can open the grown-up area. Use it together.</p><button type="button" id="clear">Delete all local profiles and progress</button><p id="parent-status" role="status"></p></section>
+</div></section>
+</main><footer>WonderWorlds · Five short adventures for early learners</footer></body></html>
